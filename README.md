@@ -93,7 +93,7 @@ The raw dataset ships with several quality issues that must be resolved before a
 
 The raw data contained impossible values, categorical inconsistencies, duplicate records, and logical date errors. Each issue was inspected individually, its root cause was reasoned through, and a resolution was applied immediately. The goal was to remove only what was genuinely uninterpretable while preserving every row that carries legitimate business signal, including unprofitable tasks and future-dated scheduled work.
 
-The dataset started at **3,248 rows**. After all cleaning steps it settled at **3,186 rows**.
+The dataset started at **3,248 rows**. After all cleaning steps it settled at **3,016 rows**.
 
 ---
 
@@ -135,15 +135,15 @@ This column was declared as boolean but contained a third value, `"unknown"`, in
 
 ### Duplicate Records
 
-Forty-eight `task_id` values appeared twice in the dataset, producing 96 rows for 48 tasks. The most plausible explanation is that tasks were updated after initial entry and both versions were exported. The most recent record per `task_id` (determined by `updated_at`) was kept and the older version was dropped.
+Forty-five `task_id` values appeared twice in the dataset, producing 90 rows for 45 tasks. The most plausible explanation is that tasks were updated after initial entry and both versions were exported. The most recent record per `task_id` (determined by `updated_at`) was kept and the older version was dropped.
 
 ---
 
 ### Date Validation
 
-Delivery timestamps were parsed to datetime and validated against creation timestamps. Fourteen rows recorded a `delivered_at` date earlier than `created_at`, which is logically impossible. These rows were removed.
+Delivery timestamps were parsed to datetime and validated against creation timestamps. Eleven rows recorded a `delivered_at` date earlier than `created_at`, which is logically impossible. These rows were removed.
 
-Five hundred and twenty-two tasks had a `created_at` date in the future relative to the data export cutoff. These were retained. Their financial and AI usage fields are fully populated, they represent legitimately scheduled work, and removing them would silently discard valid data.
+Five hundred and five tasks had a `created_at` date in the future relative to the data export cutoff. These were retained. Their financial and AI usage fields are fully populated, they represent legitimately scheduled work, and removing them would silently discard valid data.
 
 
 
