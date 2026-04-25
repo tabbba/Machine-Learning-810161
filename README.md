@@ -258,6 +258,16 @@ The data indicates that high AI usage acts as a critical stabilizer against the 
 
 ---
 
+### Missing Data Importance Analysis
+
+![Missing Data Patterns](images/22_missing_ai_usage.png)
+
+An examination of the missingness within the **ai_usage_pct** variable was conducted to determine if specific gaps in reporting might skew the overall importance of the dataset. Despite the initial focus, the results show that nothing especially significant emerges from the patterns, as the vast majority of categories hover very close to the 4.3% baseline. While there are minor elevations in missingness for senior staff and the Content team, these deviations are small enough that they do not suggest a systematic failure in data collection or a major hidden bias. For the most part, the missingness appears relatively distributed across the board, indicating that the impact of these 129 missing rows on the final analysis is likely negligible.
+
+
+
+---
+
 ### 10. The Rework Threshold: Where Speed Gains Are Eroded
 
 ![Rework threshold hours](images/10_rework_threshold.png)
@@ -265,6 +275,7 @@ The data indicates that high AI usage acts as a critical stabilizer against the 
 The chart highlights a definitive productivity threshold around the **50–60%** AI usage mark, where a consistent decline in **hours spent** begins to outweigh the rising "rework tax." While **rework hours** trend upward as AI integration increases—reflecting a higher volume of necessary corrections—the **net hours** trend sharply downward, proving that the speed gains from AI are substantial enough to offset the added friction of iterative edits. However, the data reveals a significant drop in sample size at the highest levels of automation, with only **3 tasks** recorded in the **90–100%** band compared to over **500** in the **20–30%** band. This indicates that while extreme AI usage appears to offer the most "clean" efficiency gains, it currently represents a very small, specialized fraction of the total workflow, whereas the most reliable efficiency gains are currently captured in the high-volume **60–80%** usage range.
 
 Main Finding: High AI usage serves as a powerful efficiency multiplier by driving a consistent decrease in net labor hours, though these gains are partially offset by a rising rework tax and occur across a significantly smaller volume of tasks as automation reaches its extreme.
+
 
 ![Rework threshold value analysis](images/11_rework_value_analysis.png)
 
@@ -354,6 +365,13 @@ The "Normalised Cascade" reveals that high-intensity AI adoption is a fundamenta
 
 ---
 
+
+### Brief Quality and AI Interaction Analysis
+
+![Brief Quality and AI Interaction Analysis](images/25_brief_quality_ai_interaction.png)
+
+The interaction between Brief Quality and AI Band highlights that while AI can significantly drive profitability, it remains secondary to the quality of the initial brief when determining final project outcomes. High-quality briefs (Q3 and Q4) consistently secure the best Mean Outcome Scores (71–74) regardless of how much AI is utilized, effectively setting a high performance floor. Conversely, AI acts as a financial accelerator for lower-tier briefs, particularly in the Mid-Low (Q2) category where high AI usage yields the maximum profit of €571 despite mediocre qualitative scores. Ultimately, the data suggests that for the highest-tier briefs, there is a point of diminishing returns where increased AI usage no longer substantially improves profit or quality, reinforcing the idea that human-led precision is the most stable predictor of success.
+
 ## What Business Data Is Missing?
 
 The dataset captures operational and financial outcomes well. However, several variables that would sharpen the causal story and support actionable recommendations are not tracked. These are the highest-priority gaps:
@@ -379,40 +397,112 @@ This final report synthesizes the financial, operational, and qualitative signal
 
 ---
 
- ## Key Findings from Exploratory Data Analysis
+## Key Findings from Exploratory Data Analysis
 
- ### Financial Outcomes: The Profitability Paradox
-* **Scaling Profits:** Mean profit per task more than doubles as AI usage increases, rising from **€232** in the low band to **€474** in the high band, a net gain of **€242**.
-* **Risk Mitigation:** The primary driver is a reduction in worst-case outcomes. The loss rate drops from **31%** (low AI) to **19%** (high AI). This reveals a **"Profitability Paradox"**: AI allows the business to be "messier" (higher rework) because the speed dividend provides an "efficiency cushion" that prevents projects from becoming unprofitable.
-* **The Non-Linear Breakout:** Gains are modest until the **50% threshold**, after which profit improvement accelerates sharply. This identifies a clear "Tipping Point" where AI integration moves from a tool to a business-model transformer.
+### Financial Outcomes: The Profitability Paradox
 
-### Efficiency and the "Rework Tax"
-* **Net Gains:** AI saves **~2.0 hours** per task but triggers a **0.9-hour** "rework tax." This leaves a net efficiency gain of **1.1 hours**, proving that speed gains significantly outweigh iterative friction.
-* **The Threshold of Friction:** Below **50% AI**, rework is negligible. Above **60%**, rework grows faster than hours are saved. In the high-intensity bands, the business effectively trades "process cleanliness" for "financial safety."
-* **Operational Cascade:** Above **60%**, rework, errors, and revisions rise in lockstep. This suggests a systemic degradation in human oversight as contributors begin to "push through" AI drafts rather than deeply reviewing them.
+The financial signal is unambiguous but counterintuitive in its mechanism. Mean profit per task rises from **€232 in the low-AI band to €474 in the high-AI band**, a net gain of **€242 per task**. The driver is not faster delivery translating directly into more billable output. It is the suppression of worst-case outcomes. Loss rate falls from **31% to 19%** as AI usage increases, meaning roughly **12 out of every 100 tasks that would have bled money are now profitable**.
 
- ### Quality and the "Safety Net" Failure
-* **Stable Averages, Hidden Tails:** While the mean quality score remains flat at **69**, the 10th percentile (the worst work) drops by **11 points** at high usage. Quality hasn't declined on average; it has become more volatile in the bottom tier.
-* **Total Automation Risk:** In the extreme **90–100% band**, rework hours drop while errors skyrocket (a **70% increase**). This points to a **"Safety Net Failure"** where the iterative checking process breaks down entirely, allowing factual or technical errors to bypass QA in the pursuit of speed.
+This is the **Profitability Paradox**: the business becomes financially safer by becoming operationally messier. AI generates enough speed margin that the business can absorb higher rework volumes without tipping into loss. The efficiency cushion is what prevents projects from collapsing, not first-pass perfection.
 
- ### Moderators: Pricing and Seniority
-* **Pricing as the Master Lever:** On **hourly contracts**, AI is a value-destroyer, as every hour saved is revenue removed from the invoice. Conversely, **fixed/value-based contracts** capture the full efficiency dividend, creating a **€1,200 profit gap** between the two models at high AI usage.
-* **Seniority Multiplication:** Seniors on fixed-price contracts are the high-performers, extracting a massive **€3,935** mean profit at **80–100%** usage. However, they carry the highest loss rates at low usage (**51%**) due to their high labor costs. AI is no longer optional for seniors; it is a financial necessity to justify their billing rate.
-* **Mid-Level Stability:** Mid-level contributors are the most stable "AI pilots," showing consistent growth and the most reliable safety profile across all usage bands.
+The relationship is also distinctly non-linear. Below 50% AI usage, profit gains are modest and barely separable from noise. Above 50%, profit improvement accelerates sharply. **The 50% mark is not a milestone. It is a phase change.** Below it, AI is a tool. Above it, AI becomes a business-model lever.
+
+### Efficiency and the Rework Tax
+
+The aggregate efficiency math is favorable but tightly bounded. AI saves **~2.0 hours per task** while introducing a **~0.9 hour rework tax**, yielding a **net efficiency gain of 1.1 hours per task**. Across 3,016 tasks, that is roughly **3,300 reclaimed hours**, material capacity, but only if it is captured commercially rather than absorbed back into the workflow.
+
+The friction profile inverts at 60%. Below this threshold, rework is negligible. Above it, rework hours rise faster than execution hours fall, and errors, revisions, and rework move in lockstep, a clear operational cascade. The interpretation is uncomfortable: at high AI usage, contributors stop scrutinizing AI output and start pushing it through. The system is trading process cleanliness for financial safety, and the trade is profitable, but it requires explicit acknowledgment because the failure mode is silent.
+
+### Quality and the Safety Net Failure
+
+Average outcome score holds at **~69 across all AI bands**. Headline quality is stable. The tail tells a different story: the **10th percentile of outcome scores drops by 11 points at high AI usage**. Quality has not degraded on average. It has bifurcated. Most work is fine; the worst work is meaningfully worse.
+
+The 90 to 100% band shows the most concerning pattern: rework hours actually fall while error counts rise sharply. This is the **Safety Net Failure**, the iterative correction loop that absorbs AI mistakes at moderate usage breaks down entirely at extreme usage. Errors stop being caught and start being shipped. This band contains only **3 tasks** in the cleaned dataset, so the finding is directional rather than conclusive, but the directional signal is exactly the kind of risk that justifies a control before the volume scales.
+
+### Moderators: Pricing and Seniority
+
+Pricing model is the single most consequential variable in the entire dataset, larger in effect than AI usage itself. On **hourly contracts, AI is a margin destroyer**: every saved hour is revenue removed from the invoice, and loss rates remain near 38% regardless of AI intensity. On **fixed and value-based contracts at high AI usage, profit climbs aggressively and loss rates approach zero**. The gap between the worst pricing model and the best at high AI usage is approximately **€1,200 per task**. This is not optimization. It is a structural feature of the contract architecture deciding who captures the AI dividend, the agency or the client.
+
+Seniority interacts with this dynamic asymmetrically. **Senior contributors at low AI usage carry a 51% loss rate**, by far the worst risk profile in the workforce, because their billing rates do not justify manual execution. The same seniors at **80 to 100% AI usage on the right contract structure deliver a mean profit of €3,935 per task**, roughly 8x the dataset median. AI is no longer optional for seniors; it is the only configuration in which their cost base is commercially viable. Junior contributors show the inverse profile: lowest loss rates across the board, but their profit ceiling caps in the medium AI band (€568) and slightly declines at high usage (€525) because they hit a complexity ceiling AI cannot push them past without senior direction. **Mid-level contributors are the most stable operators**. They show consistent profit growth across all bands and the most reliable safety profile, making them the natural anchor for scaling AI workflows.
 
 ---
 
- ## Strategic Business Recommendations
+## Strategic Business Recommendations
 
-Based on the quantitative signals in the data, the following actions are recommended to maximize the AI dividend while mitigating operational risk:
+The recommendations below are ordered by financial leverage and structured to act on what the data actually proves, not what is intuitively appealing. Each carries a quantified target drawn directly from the EDA.
 
-| **Priority** | **Action Item** | **Target Outcome** |
-| :--- | :--- | :--- |
-| **CRITICAL** | **Mandatory Contract Migration** | Shift **100%** of high-AI tasks (Release, Dev, Report) to **Fixed-Fee** to stop losing **€1,200** per task. |
-| **HIGH** | **Technical AI Scaling** | Mandate **60%+ AI usage** for all **Release** workflows to capture the **+€678** profit dividend. |
-| **HIGH** | **The "80% Checkpoint"** | Introduce mandatory manual QA for any task exceeding **80% AI usage** to catch the **70% error spike**. |
-| **MEDIUM** | **Creative Workflow Cap** | Cap AI usage at **30–40%** for **Article tasks** to avoid the **-€62** negative dividend. |
-| **MEDIUM** | **Senior Transitioning** | Train Seniors specifically on **80–100% workflows** to move them from a **51% loss rate** to a **€3,935 profit**. |
+### 1. CRITICAL: Restructure the Pricing Book Before Scaling AI Further
 
+The most expensive problem the data exposes is not technological. It is contractual. Every hour AI saves on an hourly contract is an hour the agency does not bill, and the productivity gain transfers cleanly to the client. The **€1,200 per-task gap between hourly and value-based contracts at high AI usage** is the cost of leaving the legacy pricing model in place.
+
+**Action:** Migrate the entire AI-eligible portfolio off hourly contracts. Prioritize senior-led engagements first, where the hourly model produces a **mean profit of €77 negative per task** versus **€511 on value-based**. Reposition the standard offer around fixed-fee deliverables and value-based outcomes. The commercial pitch becomes "guaranteed delivery, absorbed scope changes" rather than "billable hours", a story the high-AI scope-change data supports directly, since high-AI tasks with scope changes outperform those without.
+
+**Target outcome:** Recover the €1,200/task structural gap on the hourly book. Convert junior plus value-based work into a dedicated tier. At **€923 mean profit per task**, this is the single most profitable segment in the matrix and currently has no commercial product wrapped around it.
+
+### 2. CRITICAL: Eliminate the 10 to 50% AI Dead Zone
+
+The data refutes phased adoption. In the **10 to 50% AI usage range, hours spent peak at 14.2 hours**, higher than the manual baseline. Half-measure AI integration is measurably worse than either no AI or aggressive AI. Real ROI begins crossing the **60 to 70% threshold**, and the stable scalable zone is **60 to 80%**.
+
+**Action:** For each workflow, decide binary: re-architect it to operate at 60% AI usage or higher, or leave it manual. Stop tolerating the middle. Reorganize training, prompt libraries, and review processes around high-intensity operation rather than casual augmentation.
+
+**Target outcome:** Move at least **70% of eligible tasks into the 60 to 80% AI band** within two operating quarters. The expected impact is the full **€242/task profit lift** documented in the EDA, applied to the migrated volume.
+
+### 3. HIGH: Differentiate AI Strategy by Task Type
+
+AI is not uniformly profitable across deliverables. The Release category shows a **5.9x profit multiplier going from low to high AI (€138 to €816)**. Dev and Report more than double. **Articles invert**. Profit peaks in the medium band and declines at high usage because rework outpaces speed gains in creative judgment-heavy work.
+
+**Action:** Aggressively push **Release, Dev, and Report toward 70 to 80% AI usage** with refined templates, automated QA, and task-specific prompt libraries. Cap **Article and Ad workflows at the medium band (25 to 50%)** and reposition the Content team's AI usage as a drafting tool rather than a production tool. Review the Content team's pricing structure separately. They are absorbing rework friction without the contract structure to recover it.
+
+**Target outcome:** Capture the **+€678 per-task dividend** in Release tasks specifically, and avoid the negative dividend in long-form content. This is sequencing intelligence: push where the data shows compounding returns, hold where it shows diminishing ones.
+
+### 4. HIGH: Install the 80% Quality Checkpoint
+
+The Safety Net Failure in the 90 to 100% band, rework falling while errors rise, is the single operational risk that could undo the financial gains of aggressive AI adoption. The 10th-percentile quality drop of 11 points at high usage means a small fraction of work is shipping with material defects that the iterative loop is no longer catching.
+
+**Action:** Mandate a structured human QA gate for any task exceeding **80% AI usage**, with criteria specifically tuned for AI failure modes (factual hallucination, logical inconsistency, brand drift) rather than generic copy review. Track the 10th-percentile outcome score as a leading indicator alongside the mean.
+
+**Target outcome:** Compress the worst-tier quality drop from 11 points back toward the dataset baseline while preserving the speed dividend. This is insurance, not friction. Without it, a single high-visibility shipped error can cost more than a quarter of accumulated AI gains.
+
+### 5. HIGH: Reposition Seniors as AI Force Multipliers, Not Manual Operators
+
+Senior contributors are currently the worst-performing segment at low AI usage (**51% loss rate**) and the best-performing segment at high AI usage (**€3,935 mean profit per task**). Their P&L contribution flips from deeply negative to extraordinary based purely on which tasks they touch. The current allocation is leaving the most expensive talent in the lowest-leverage configuration.
+
+**Action:** Reallocate seniors away from low-AI tactical execution and toward **80 to 100% AI workflows on complex deliverables, AI workflow design, and prompt engineering for the broader team**. Build a "senior plus high-AI" engagement tier and price it as a premium product. Seniors should not be billed against tasks they could perform manually. That is precisely the configuration where they lose money.
+
+**Target outcome:** Move senior loss rate from 51% toward the mid-level baseline while capturing the €3,935 ceiling on high-leverage engagements. This is the largest single talent-utilization opportunity in the dataset.
+
+### 6. MEDIUM: Fix Briefs Before Fixing Anything Else
+
+Brief quality correlates **+0.34 with outcome score and 0.36 negative with rework hours**, the strongest controllable predictors in the entire dataset, larger than AI usage's own coefficients. **A high-quality brief at high AI usage delivers the maximum observed profit of €571 in the Q2 brief tier**, and Q3 to Q4 briefs hold outcome scores at 71 to 74 regardless of AI band. The rework tax is not primarily an AI problem. It is a brief problem amplified by AI.
+
+**Action:** Standardize a structured brief template across all teams. Score every brief before kickoff and refuse to start work below a defined threshold. This is process discipline with zero tooling cost.
+
+**Target outcome:** Compress the rework tax across the AI usage curve. Every additional point of brief quality is worth more than ten percentage points of additional AI usage in terms of rework reduction. This is the cheapest lever in the system.
+
+### 7. MEDIUM: Reframe Rework as a Strategic Asset
+
+The cultural instinct is to minimize rework. The data argues the opposite: rework is the price of the financial safety the speed dividend creates. Loss rate drops from 30%+ to ~15% across the AI usage range *while* rework rises. The trade is profitable.
+
+**Action:** Replace "first-pass quality" KPIs with **iteration-speed KPIs** (cycle time, iterations-to-acceptance, defect-resolution time). Train team leads to push for fast generation followed by fast correction rather than slow careful drafting. This is a cultural shift that should be made explicit, not assumed.
+
+**Target outcome:** Sustain the loss-rate compression documented in the EDA without organizational drift back toward "get it right the first time", which the data shows is now the more expensive strategy.
+
+### 8. STRUCTURAL: Close the Three Data Blind Spots
+
+The current dataset proves cost efficiency but cannot prove customer value. Three additions would convert this from operational analytics into strategic intelligence:
+
+**Client retention at 12 months** is the most consequential downstream signal and is entirely missing. A profitable task today that damages a multi-year relationship is a net loss the current data cannot detect.
+
+**AI tool identity and prompt iteration count** would allow rational tool procurement and training budget allocation. Two precise prompts and thirty rejected iterations look identical in `ai_usage_pct` today and are commercially incomparable.
+
+**Revision reason codes** would separate AI-induced quality failures from client preference changes. The remediation paths are completely different and cannot be prioritized without the split.
+
+**A specific data investment:** the 90 to 100% AI band has only **3 observations**. Deliberately commission **30 to 50 tasks** in this band across task types and seniorities. This will either validate the extrapolated upside (worth millions if it holds) or expose the breaking point. Right now the most strategically important region of the curve is statistically empty, and any decision about extreme automation is being made on three data points.
+
+---
+
+## The Bottom Line
+
+The data does not say "AI improves margins." It says something more precise and more useful: **AI improves margins only inside contracts and workflows designed to capture the saved hours, and inverts margins inside those that aren't.** The technology is doing its job. The business model is the bottleneck. Every recommendation above is a different facet of the same instruction: restructure the system around the AI, instead of bolting the AI onto the system.
 
 ---
