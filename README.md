@@ -1,38 +1,34 @@
 # AI Productivity: Does AI Help or Hurt the Business?
 
-## Introduction
+**Team Members:**: [Alexandra Tabarani]·[Gabriele Loreti]·[Edoardo Cocciò]
 
-Generative AI tools promise to make knowledge workers faster. But faster does not always mean more profitable. When a consultant uses AI to draft a report in two hours instead of six, who captures the gain: the agency, or the client? Does the time saved translate into higher margins, or does it get absorbed by rework, lower billing rates, or pricing models that were never designed for AI-assisted delivery?
+## [Section 1] Introduction
 
-This project investigates those questions empirically. Using a dataset of 3,248 professional service tasks, we analyse the relationship between AI usage and financial outcomes - profit, loss rate, and SLA performance - and identify the conditions under which AI assistance helps or hurts. The analysis moves through three stages: exploratory data analysis, baseline statistical modelling, and machine learning with interpretability techniques.
+Generative AI tools promise to make knowledge workers faster, but faster does not always mean more profitable. When a consultant uses AI to draft a report in two hours instead of six, who captures the gain: the agency, or the client? Does the time saved translate into higher margins, or does it get absorbed by rework, lower billing rates, or pricing models that were never designed for AI-assisted delivery?
 
----
+This project investigates those questions empirically using a dataset of **3,248 professional service tasks** drawn from a real agency operation spanning Content, Design, SEO, and Media delivery teams. Each row represents one completed or in-progress task - article, design asset, development ticket, report, and so on - and records how much AI was used, how long it took, what it cost, what it billed, and whether the outcome met quality and deadline standards.
 
-## Task Description
+The **primary research question** is:
 
-The unit of analysis is a single professional service task or deliverable (e.g., an article, a design asset, a development ticket). For each task, the dataset records how much AI was used, how long it took, what it cost, what it billed, and whether the outcome met quality and deadline standards.
-
-The primary research question is:
-
-> **At what level of AI usage does AI assistance start compressing profit margins, and what moderating factors explain when AI helps versus hurts?**
+> At what level of AI usage does AI assistance start compressing profit margins, and what moderating factors explain when AI helps versus hurts?
 
 Secondary questions include:
 
 - Does AI usage reduce SLA breach rates or introduce new delivery risk?
-- Does higher AI usage reduce perceived quality (outcome scores)?
-- How does the pricing model (fixed, hourly, value-based) mediate the relationship between AI and profit?
+- Does higher AI usage reduce perceived quality?
+- How does the pricing model mediate the relationship between AI and profit?
 - Do senior contributors extract more or less value from AI than junior ones?
 - Do scope changes compound or dampen the effect of AI on rework and cost?
 
-The analysis is intended to produce actionable findings for business stakeholders, not just statistical significance, but concrete guidance on where AI deployment is profitable and where it is not.
+The analysis moves through three stages: **exploratory data analysis (EDA)**, **baseline statistical modelling**, and **machine learning with interpretability techniques**. The goal is actionable findings for business stakeholders — not just statistical significance, but concrete guidance on where AI deployment is profitable and where it is not.
 
----
 
-## Dataset
+## [Section 2] Methods
 
-The dataset contains **3,248 tasks** drawn from a professional services operation spanning content, design, SEO, and media delivery teams. Each row represents one completed or in-progress task.
+### 2.1 Dataset
 
-### Columns
+The dataset contains **3,248 tasks** drawn from a professional services operation. Each row represents one completed or in-progress deliverable. The key columns used throughout the analysis are listed below.
+
 
 | Column | Type | Description |
 |---|---|---|
@@ -71,30 +67,15 @@ The dataset contains **3,248 tasks** drawn from a professional services operatio
 | `legacy_ai_flag` | boolean | Legacy AI flag (unreliable; 339 "unknown" entries) |
 | `content_version` | string | Content version identifier |
 
-### Key Statistics at a Glance
-
-| Variable | Notable Stats |
-|---|---|
-| `profit` | Median ~€254; ranges from −€8,510 to large positive values; 25% of tasks are loss-making |
-| `revenue` | Median ~€966 |
-| `ai_usage_pct` | Main predictor; 144 missing values (4.4%); excluded from regression rather than imputed |
-| `hours_spent` | Median 11.1 h; peaks at 263.6 h (23× the median, extreme right tail) |
-| `rework_hours` | Median 1.8 h; peaks at 57.5 h |
-| `outcome_score` | Flat across AI usage bands (~69 on average) |
-
-The raw dataset ships with several quality issues that must be resolved before any analysis can be trusted. These are described in full in the next section.
 
 ---
 
-## Data Quality and Cleaning
+### 2.2 Data Cleaning
 
-The raw data contained impossible values, categorical inconsistencies, duplicate records, and logical date errors. Each issue was inspected individually, its root cause was reasoned through, and a resolution was applied immediately. The goal was to remove only what was genuinely uninterpretable while preserving every row that carries legitimate business signal, including unprofitable tasks and future-dated scheduled work.
+The raw dataset required several cleaning steps before any analysis could be trusted. Each issue was inspected individually, its root cause reasoned through, and a resolution applied immediately. The goal was to remove only what was genuinely uninterpretable while preserving every row that carries legitimate business signal — including unprofitable tasks and future-dated scheduled work.
 
-The dataset started at **3,248 rows**. After all cleaning steps it settled at **3,016 rows**.
+The dataset started at **3,248 rows** and settled at **3,016 rows** after cleaning.
 
----
-
-### Impossible Values
 
 #### Negative `billable_hours`
 
@@ -116,11 +97,8 @@ The dataset contained two AI usage columns: a boolean `ai_assisted` flag and a c
 
 ### Categorical Normalisation
 
-#### `team`
 
 The raw `team` column recorded 15 distinct values despite the organisation having only 4 real teams: Content, Media, SEO, and Design. The extra values were entirely the result of casing variants and typos. A standardisation mapping was applied and the column collapsed to 4 clean values.
-
-#### `task_type`
 
 The raw `task_type` column recorded 29 distinct values despite the operation having only 7 real task types: article, design, ticket, report, ad, dev, and release. Issues included inconsistent casing, a spurious `_task` suffix on many entries, outright typos (`artcle`, `repport`, `relese`), and aliased names where the same concept appeared under multiple labels (`blog_article` and `blog` both mapped to `article`; `paid_ad` and `ad` collapsed to `ad`; `support_ticket` to `ticket`; `development` and `dev` to `dev`; `creative` to `design`). A consolidation function was applied and the column collapsed to 7 clean values.
 
@@ -130,23 +108,46 @@ This column was declared as boolean but contained a third value, `"unknown"`, in
 
 ---
 
-### Duplicate Records
+#### Duplicate Records
 
 Forty-five `task_id` values appeared twice in the dataset, producing 90 rows for 45 tasks. The most plausible explanation is that tasks were updated after initial entry and both versions were exported. The most recent record per `task_id` (determined by `updated_at`) was kept and the older version was dropped.
 
 ---
 
-### Date Validation
+#### Date Validation
 
 Delivery timestamps were parsed to datetime and validated against creation timestamps. Eleven rows recorded a `delivered_at` date earlier than `created_at`, which is logically impossible. These rows were removed.
 
 Five hundred and five tasks had a `created_at` date in the future relative to the data export cutoff. These were retained. Their financial and AI usage fields are fully populated, they represent legitimately scheduled work, and removing them would silently discard valid data.
 
 
+---
+
+### 2.3 Feature Engineering
+
+**AI Band (`ai_band`):** For grouped visualisation and analysis, `ai_usage_pct` is segmented into three bands used consistently throughout:
+
+| Band | Range |
+|---|---|
+| `low` | 0 – 25% |
+| `medium` | 25 – 50% |
+| `high` | > 50% |
+
+Where finer resolution is needed, the continuous variable is cut into **decile bins**. A consistent colour palette is applied throughout so the same band always maps to the same colour across all charts.
+
+**Loss flag (`is_loss`):** A binary column derived from `profit < 0`, used as a classification target in the modelling stage.
 
 ---
 
-## Exploratory Data Analysis
+## [Section 3] Experimental Design
+
+
+...
+
+
+## [Section 4] Results
+
+### Exploratory Data Analysis
 
 All visualisations use a shared three-level categorical variable `ai_band` derived from `ai_usage_pct`:
 
@@ -372,7 +373,17 @@ The "Normalised Cascade" reveals that high-intensity AI adoption is a fundamenta
 
 The interaction between Brief Quality and AI Band highlights that while AI can significantly drive profitability, it remains secondary to the quality of the initial brief when determining final project outcomes. High-quality briefs (Q3 and Q4) consistently secure the best Mean Outcome Scores (71–74) regardless of how much AI is utilized, effectively setting a high performance floor. Conversely, AI acts as a financial accelerator for lower-tier briefs, particularly in the Mid-Low (Q2) category where high AI usage yields the maximum profit of €571 despite mediocre qualitative scores. Ultimately, the data suggests that for the highest-tier briefs, there is a point of diminishing returns where increased AI usage no longer substantially improves profit or quality, reinforcing the idea that human-led precision is the most stable predictor of success.
 
-## What Business Data Is Missing?
+
+
+##  Modelling Results
+
+...
+
+
+## [Section 5] Conclusions (to be refined)
+
+
+### What Business Data Is Missing?
 
 The dataset captures operational and financial outcomes well. However, several variables that would sharpen the causal story and support actionable recommendations are not tracked. These are the highest-priority gaps:
 
