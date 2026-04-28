@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(ipynb|md|pptx|xlsx|csv|py|txt|json\\)$\")",
+      "Bash(uv add *)",
+      "Bash(uv run *)",
+      "Bash(uv remove *)"
+    ]
+  }
+}

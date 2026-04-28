@@ -91,7 +91,7 @@ The dataset contains **3,248 tasks** drawn from a professional services operatio
 | `task_status` | categorical | Current task status |
 | `workflow_stage` | categorical | Stage in the delivery workflow |
 | `jira_ticket` | string | Associated Jira ticket reference |
-| `legacy_ai_flag` | boolean | Legacy AI flag (unreliable; 339 "unknown" entries) |
+| `legacy_ai_flag` | boolean | Legacy AI flag (unreliable; 322 "unknown" entries) |
 | `content_version` | string | Content version identifier |
 
 
@@ -101,7 +101,7 @@ The dataset contains **3,248 tasks** drawn from a professional services operatio
 
 The raw dataset required several cleaning steps before any analysis could be trusted. Each issue was inspected individually, its root cause reasoned through, and a resolution applied immediately. The goal was to remove only what was genuinely uninterpretable while preserving every row that carries legitimate business signal — including unprofitable tasks and future-dated scheduled work.
 
-The dataset started at **3,248 rows** and settled at **3,016 rows** after cleaning.
+The dataset started at **3,248 rows** and settled at **3,186 rows** after cleaning.
 
 
 #### Negative `billable_hours`
@@ -114,11 +114,11 @@ Eight hundred and seventeen tasks (25% of the dataset) recorded negative profit,
 
 #### `rework_hours` Greater Than `hours_spent`
 
-Since rework is performed within the total time a task takes, `rework_hours` cannot logically exceed `hours_spent`. Sixty-seven rows violated this constraint. No plausible business explanation exists for this pattern, so the rows were treated as data entry errors and dropped.
+Since rework is performed within the total time a task takes, `rework_hours` cannot logically exceed `hours_spent`. Sixty-seven rows violated this constraint. The metric definition is ambiguous — `rework_hours` could plausibly be tracked as additional billable time logged after delivery rather than as a sub-portion of `hours_spent`. With no clear interpretive rule, these rows were left untouched in the dataset rather than dropped or capped, and modelling instead relies on `hours_spent` directly (which absorbs rework's financial signal anyway, as the OLS confirms).
 
 #### Conflict Between `ai_assisted` and `ai_usage_pct`
 
-The dataset contained two AI usage columns: a boolean `ai_assisted` flag and a continuous `ai_usage_pct` percentage. A number of rows showed the two columns in direct contradiction, with tasks marked as not AI-assisted despite recording non-zero usage percentages, and vice versa. Because `ai_usage_pct` is a continuous measure that directly captures the share of work done with AI, it is strictly more informative than a binary flag. The inconsistencies are consistent with `ai_assisted` being an unreliable derived field rather than a source of truth. The `ai_assisted` column was dropped in favour of `ai_usage_pct` throughout the analysis.
+The dataset contained two AI usage columns: a boolean `ai_assisted` flag and a continuous `ai_usage_pct` percentage. A number of rows showed the two columns in direct contradiction, with tasks marked as not AI-assisted despite recording non-zero usage percentages, and vice versa. Because `ai_usage_pct` is a continuous measure that directly captures the share of work done with AI, it is strictly more informative than a binary flag. The inconsistencies are consistent with `ai_assisted` being an unreliable derived field rather than a source of truth. Rather than choose an arbitrary correction rule, the `ai_assisted` column was retained in the dataframe but excluded from all modelling and visualisation in favour of `ai_usage_pct`.
 
 ---
 
@@ -131,7 +131,7 @@ The raw `task_type` column recorded 29 distinct values despite the operation hav
 
 #### `legacy_ai_flag`
 
-This column was declared as boolean but contained a third value, `"unknown"`, in 332 rows. The `"unknown"` entries were replaced with `NaN` so they are handled consistently with other missing values rather than masquerading as a meaningful category. The remaining `"true"` and `"false"` strings were converted to proper booleans.
+This column was declared as boolean but contained a third value, `"unknown"`, in 322 rows. The `"unknown"` entries were replaced with `NaN` so they are handled consistently with other missing values rather than masquerading as a meaningful category. The remaining `"true"` and `"false"` strings were converted to proper booleans.
 
 ---
 
@@ -168,8 +168,38 @@ Where finer resolution is needed, the continuous variable is cut into **decile b
 
 ## [Section 3] Experimental Design
 
+The modelling stage is structured as a deliberate sequence: start with a fully interpretable model, test causal mechanisms, then escalate to flexible learners and validate with interpretability tools.
 
-...
+### 3.1 OLS Inference
+
+The first model is an Ordinary Least Squares regression of `profit` on all pre-task observable variables. Standard errors are estimated with HC3 heteroskedasticity-robust correction, given the heavy right-skew observed in the distribution of residuals. OLS is run before any machine learning precisely because its coefficients have direct causal interpretations: each coefficient answers *"how many euros of profit does this variable add, holding everything else fixed?"* — a question tree-based models cannot answer directly. A two-step model is estimated: a baseline including all main effects, then an interaction model adding AI × pricing_model and AI × seniority terms to test whether the mechanism of AI's profit effect is mediated through contract structure or workforce configuration.
+
+Two additional mechanism tests are embedded in the interaction model: a quadratic rework term (to test whether rework destroys margin above a threshold) and an AI × rework interaction (to test whether AI's profit effect runs through a quality channel). Both are specified and retained if significant; if not, they confirm that the OLS profit channel runs exclusively through hours, not quality.
+
+### 3.2 Regularised Models
+
+LASSO and Ridge regressions are fitted on the same feature set as the OLS baseline. LASSO serves as a variable-selection cross-check: any feature zeroed by LASSO but retained as significant in OLS would be a red flag for multicollinearity or spurious significance. Ridge provides a stability check: if Ridge R² diverges substantially from OLS R², overfitting or collinearity is distorting the baseline. Both are fitted with cross-validated hyperparameter selection.
+
+### 3.3 Random Forest
+
+Two Random Forest models are trained on an 80/20 stratified train-test split:
+
+- **Regression:** predicts continuous `profit`. Evaluated on R² and MAE on the held-out test set.
+- **Classification:** predicts `is_loss` (binary: profit < 0). Evaluated on ROC-AUC, recall on the loss class, and precision on the loss class. Recall is the operationally critical metric because undetected losses are the failure mode the business wants to intercept.
+
+Random Forest is chosen over linear models for this stage because it captures the non-linearities and interaction effects visible in the EDA (the 50% phase change, the seniority × AI non-linearity) without requiring manual specification.
+
+### 3.4 XGBoost Robustness Check
+
+An XGBoost regressor is trained on the same split and feature set as the Random Forest regression. Its purpose is convergence validation: if the two models agree on both held-out R² and the top SHAP drivers, the findings are robust to model architecture. If they disagree, the specific area of disagreement becomes an analysis priority.
+
+### 3.5 SHAP Interpretability
+
+SHAP (SHapley Additive exPlanations) values are computed on the Random Forest regression model using the test set. Three analyses are run:
+
+1. **Global feature importance:** mean absolute SHAP value per feature, ranking which variables drive the largest profit effects across the entire dataset.
+2. **Conditional AI effect:** SHAP values for `ai_usage_pct` are plotted against the raw feature value to identify the threshold where AI's marginal contribution to profit crosses from negative to positive — the operational break-even point.
+3. **Decision view:** a single-variable conditional table cross-referencing the six strongest SHAP drivers against observed loss rates in the test set, providing a lookup-ready risk assessment tool.
 
 
 ## [Section 4] Results
@@ -262,7 +292,7 @@ A 3×3 heatmap showing mean profit for every combination of `seniority` (junior,
 
 The most striking finding is that senior contributors on hourly contracts record the worst mean profit and the highest loss rate of any segment, actually resulting in a negative mean of **-€77**. However, senior profitability improves significantly on fixed contracts and reaches its peak on value-based models at **€511**. This confirms that the pricing model is not a passive backdrop; it determines whether AI-driven productivity gains accrue to the agency or the client. On hourly contracts, every hour saved by AI is an hour not billed, causing efficiency gains to vanish from the revenue line, whereas on fixed or value-based contracts, those saved hours become margin.
 
-Junior contributors on value-based contracts represent the most profitable profile in the matrix at **€923** per task. This segment remains the most resilient because the value-based fee does not compress when AI accelerates delivery speeds. Juniors on value-based contracts represent the highest-profit segment in the entire matrix, as their lower cost base maximizes the spread between the fixed fee and the reduced hours spent.
+Junior contributors on value-based contracts represent the most profitable profile in the matrix at **€919** per task. This segment remains the most resilient because the value-based fee does not compress when AI accelerates delivery speeds. Juniors on value-based contracts represent the highest-profit segment in the entire matrix, as their lower cost base maximizes the spread between the fixed fee and the reduced hours spent.
 
 ---
 
@@ -272,7 +302,7 @@ Junior contributors on value-based contracts represent the most profitable profi
 
 A lower-triangle heatmap of pairwise Pearson correlations between the eleven continuous variables most relevant to the analysis: `ai_usage_pct`, `profit`, `hours_spent`, `billable_hours`, `rework_hours`, `revisions`, `errors`, `outcome_score`, `sla_breach`, `task_complexity_score`, and `brief_quality_score`.
 
-The correlation matrix identifies a significant operational trade-off where **ai_usage_pct** acts as a driver for both financial gain and process friction. While higher AI integration is linked to improved **profit (0.11)** and a reduction in **sla_breach (-0.11)**, it simultaneously correlates with an increase in **rework_hours (0.17)** and is more frequently utilized for high-complexity tasks. This "quality tax" is further evidenced by the strong negative impact that **errors (-0.48)** and **rework_hours (-0.26)** have on the final **outcome_score**. Conversely, the data highlights that **brief_quality_score** is a critical safeguard; a high-quality brief is the strongest positive predictor of the **outcome_score (0.34)** and serves as a vital defense against excessive **rework_hours (-0.36)**. Ultimately, the matrix suggests that while AI successfully accelerates delivery and protects margins, the final quality of the work remains heavily dependent on the clarity of the initial instructions and the effective management of the resulting iterative corrections.
+The correlation matrix identifies a significant operational trade-off where **ai_usage_pct** acts as a driver for both financial gain and process friction. While higher AI integration is linked to improved **profit (0.12)** and a reduction in **sla_breach (-0.10)**, it simultaneously correlates with an increase in **rework_hours (0.13)** and is more frequently utilized for high-complexity tasks. This "quality tax" is further evidenced by the strong negative impact that **errors (-0.48)** has on the final **outcome_score**. Conversely, the data highlights that **brief_quality_score** is a critical safeguard; a high-quality brief is the strongest positive predictor of the **outcome_score (0.35)** and is also negatively associated with **rework_hours (-0.25)**. Ultimately, the matrix suggests that while AI successfully accelerates delivery and protects margins, the final quality of the work remains heavily dependent on the clarity of the initial instructions and the effective management of the resulting iterative corrections.
 
 ---
 
@@ -381,7 +411,7 @@ The three heatmaps collectively reveal that high-intensity AI usage acts as a po
 
 ![Task type low vs high AI profit comparison](images/21_task_type_sensitivity.png)
 
-The comparison of profitability across task types reveals that high-intensity AI integration acts as a powerful margin multiplier for technical and structured workflows while facing diminishing returns in creative domains. The most profound transformation is seen in the **Release** category, where mean profit skyrockets from **€138** to **€816**, a nearly sixfold increase that underscores the massive efficiency gains available in deployment-related automation. Similarly, structured tasks like **Dev** and **Report** see their profits more than double, proving that AI excels at handling the boilerplate and data synthesis required for technical outputs. However, the **Article** category presents a notable exception, as it is the only area where high AI usage actually reduces profit, likely due to the heavy "rework tax" required to bring automated creative writing up to human standards. Ultimately, the data suggests that the business should aggressively prioritize high AI usage in technical and repetitive categories like Release, Dev, and Reporting to capture the greatest financial dividends, while maintaining a more balanced, human-centric approach to long-form creative content.
+The comparison of profitability across task types reveals that high-intensity AI integration acts as a powerful margin multiplier for technical and structured workflows while facing diminishing returns in creative domains. The most profound transformation is seen in the **Release** category, where mean profit climbs from **€146** to **€701**, a roughly fivefold increase that underscores the massive efficiency gains available in deployment-related automation. Similarly, structured tasks like **Dev** and **Report** see their profits more than double, proving that AI excels at handling the boilerplate and data synthesis required for technical outputs. However, the **Article** category presents a notable exception, as it is the only area where high AI usage actually reduces profit, likely due to the heavy "rework tax" required to bring automated creative writing up to human standards. Ultimately, the data suggests that the business should aggressively prioritize high AI usage in technical and repetitive categories like Release, Dev, and Reporting to capture the greatest financial dividends, while maintaining a more balanced, human-centric approach to long-form creative content.
 
 ---
 
@@ -414,7 +444,7 @@ The relationship is also distinctly non-linear. Below 50% AI usage, profit gains
 
 ### Efficiency and the Rework Tax
 
-The aggregate efficiency math is favorable but tightly bounded. AI saves **~2.0 hours per task** while introducing a **~0.9 hour rework tax**, yielding a **net efficiency gain of 1.1 hours per task**. Across 3,016 tasks, that is roughly **3,300 reclaimed hours**, material capacity, but only if it is captured commercially rather than absorbed back into the workflow.
+The aggregate efficiency math is favorable but tightly bounded. AI saves **~2.0 hours per task** while introducing a **~0.9 hour rework tax**, yielding a **net efficiency gain of 1.1 hours per task**. Across 3,186 tasks, that is roughly **3,500 reclaimed hours**, material capacity, but only if it is captured commercially rather than absorbed back into the workflow.
 
 The friction profile inverts at 60%. Below this threshold, rework is negligible. Above it, rework hours rise faster than execution hours fall, and errors, revisions, and rework move in lockstep, a clear operational cascade. The interpretation is uncomfortable: at high AI usage, contributors stop scrutinizing AI output and start pushing it through. The system is trading process cleanliness for financial safety, and the trade is profitable, but it requires explicit acknowledgment because the failure mode is silent.
 
@@ -426,17 +456,113 @@ The 90 to 100% band shows the most concerning pattern: rework hours actually fal
 
 ### Moderators: Pricing and Seniority
 
-Pricing model is the single most consequential variable in the entire dataset, larger in effect than AI usage itself. On **hourly contracts, AI is a margin destroyer**: every saved hour is revenue removed from the invoice, and loss rates remain near 38% regardless of AI intensity. On **fixed and value-based contracts at high AI usage, profit climbs aggressively and loss rates approach zero**. The gap between the worst pricing model and the best at high AI usage is approximately **€1,200 per task**. This is not optimization. It is a structural feature of the contract architecture deciding who captures the AI dividend, the agency or the client.
+Pricing model is the single most consequential variable in the entire dataset, larger in effect than AI usage itself. On **hourly contracts, AI is a margin destroyer**: every saved hour is revenue removed from the invoice, and loss rates stay around 33% across all AI bands (37% at low AI, 29% at high AI — never falling much). On **fixed and value-based contracts at high AI usage, profit climbs aggressively and loss rates approach zero**. The gap between the worst pricing model (hourly, €202) and the best (value-based, €1,073) at high AI usage is approximately **€870 per task**. This is not optimization. It is a structural feature of the contract architecture deciding who captures the AI dividend, the agency or the client.
 
-Seniority interacts with this dynamic asymmetrically. **Senior contributors at low AI usage carry a 51% loss rate**, by far the worst risk profile in the workforce, because their billing rates do not justify manual execution. The same seniors at **80 to 100% AI usage on the right contract structure deliver a mean profit of €3,935 per task**, roughly 8x the dataset median. AI is no longer optional for seniors; it is the only configuration in which their cost base is commercially viable. Junior contributors show the inverse profile: lowest loss rates across the board, but their profit ceiling caps in the medium AI band (€568) and slightly declines at high usage (€525) because they hit a complexity ceiling AI cannot push them past without senior direction. **Mid-level contributors are the most stable operators**. They show consistent profit growth across all bands and the most reliable safety profile, making them the natural anchor for scaling AI workflows.
-
-
-##  Modelling Results
-
-...
+Seniority interacts with this dynamic asymmetrically. **Senior contributors at low AI usage carry a 50% loss rate**, by far the worst risk profile in the workforce, because their billing rates do not justify manual execution. The same seniors at **80 to 100% AI usage on the right contract structure deliver a mean profit of €3,935 per task**, roughly 8x the dataset median. AI is no longer optional for seniors; it is the only configuration in which their cost base is commercially viable. Junior contributors show the inverse profile: lowest loss rates across the board, but their profit ceiling caps in the medium AI band (€567) and slightly declines at high usage (€525) because they hit a complexity ceiling AI cannot push them past without senior direction. **Mid-level contributors are the most stable operators**. They show consistent profit growth across all bands and the most reliable safety profile, making them the natural anchor for scaling AI workflows.
 
 
-## [Section 5] Conclusions (to be refined)
+## Modelling Results
+
+### OLS Baseline
+
+The OLS regression explains **11.5% of profit variance** (R² = 0.115) with HC3 robust standard errors. Despite the modest R², all six structural variables are significant and their directions match the EDA patterns exactly. The key coefficients:
+
+| Variable | Coefficient | p-value | Interpretation |
+|---|---|---|---|
+| `ai_usage_pct` | **+€222** | 0.015 | AI adds €222/task at full adoption, all else equal |
+| `pricing_hourly` | **−€254** | < 0.001 | Hourly contracts cost €254 vs identical fixed-price task |
+| `pricing_value_based` | **+€286** | < 0.001 | Value-based earns €286 more than fixed |
+| `seniority` | **−€173** | < 0.001 | Each seniority step costs €173 in profit (cost drag) |
+| `task_complexity_score` | **+€111** | < 0.001 | Higher complexity commands higher revenue |
+| `client_tier` | **+€114** | < 0.001 | Premium clients yield €114 more per tier step |
+| `hours_spent` | **−€5** | 0.034 | Marginal hour cost once all factors are controlled |
+
+Once `hours_spent` enters the model, every quality variable — `errors`, `revisions`, `rework_hours`, `outcome_score` — loses statistical significance entirely. **AI's profit effect runs entirely through hours, not quality.** The contract structure then decides whether those saved hours accrue to the agency or the client.
+
+---
+
+### Interaction Model: The Mechanism Test
+
+Adding AI × pricing_model and AI × seniority interactions reveals the causal architecture beneath the baseline:
+
+**AI × Pricing Model**
+
+| Interaction | Coefficient | p-value |
+|---|---|---|
+| AI × hourly | **−€701** | < 0.001 |
+| AI × value_based | +€247 | 0.398 (n.s.) |
+
+At full AI adoption under an hourly contract, the −€701 interaction term completely swamps the +€222 main effect of AI. The net effect of AI under hourly billing is approximately **−€479 per task**. The mechanism is mechanical: AI compresses hours, fewer hours are billed, revenue falls while costs do not, and the productivity dividend transfers to the client. There is no contract renegotiation or usage threshold that makes hourly billing safe under AI.
+
+**AI × Seniority**
+
+| Interaction | Coefficient | p-value |
+|---|---|---|
+| AI × seniority | **+€359 per level** | 0.002 |
+
+Each seniority level raises the marginal return of AI by €359. At senior level (two steps above junior), the interaction gain (€718) fully reverses and more than doubles the baseline cost drag (€346). Seniors are commercially unviable under manual work; they are the highest-value configuration under high AI.
+
+**Mechanism Tests**
+
+Both additional mechanism tests were non-significant and confirm the hours-only channel:
+- Rework quadratic term: p = 0.605 — no rework tipping point exists
+- AI × rework interaction: coefficient = −92.7, p = 0.801 — AI does not act on profit through quality
+
+---
+
+### Regularised Models
+
+LASSO (cross-validated) zeroed out **12 of 25 features**. Every zeroed feature was also non-significant in the OLS baseline — confirming that OLS variable selection was not an artifact of the parametric assumptions. The zeroed variables include: `outcome_score`, `revisions`, `errors`, `sla_breach`, `deadline_pressure`, `rework_ratio`, `scope_change_flag`, `sla_days`, `task_type_release`, and the three non-Content team dummies.
+
+Ridge regression produced R² = 0.114, consistent with OLS R² = 0.115. No overfitting or collinearity distortion is present in the baseline.
+
+---
+
+### Random Forest and XGBoost
+
+| Model | Metric | Value |
+|---|---|---|
+| RF Regression | R² (test set) | **0.223** |
+| RF Regression | MAE | **€375** |
+| RF Classifier | ROC-AUC | **0.754** |
+| RF Classifier | Recall (loss class) | **0.55** |
+| RF Classifier | Precision (loss class) | **0.43** |
+| XGBoost Regression | R² (test set) | **0.208** |
+
+The Random Forest reaches R² = 0.223 on the held-out test set, against an OLS test-set R² of 0.068 — a roughly threefold improvement that comes from capturing the non-linearities and interaction effects OLS could only represent through manual specification. The classifier correctly identifies **55% of actual loss-making tasks before delivery** with 43% precision: flagging 100 tasks as risky will correctly identify 43 genuine losses, against a background loss rate of 24% — a meaningful pre-task signal.
+
+XGBoost and Random Forest agree on R² within 0.015. Their top-5 SHAP drivers are identical. The findings are robust to model architecture.
+
+---
+
+### SHAP Analysis
+
+**Global Importance:** `pricing_model_hourly` is the dominant driver of regression predictions (largest mean absolute SHAP value). `seniority` is the top predictor of loss probability in the classifier. These rankings are consistent across both RF and XGBoost.
+
+**AI Usage Threshold:** Plotting SHAP values for `ai_usage_pct` against the raw feature value reveals a sign change at **30.6% AI usage**:
+
+| Zone | Tasks in Test Set | Mean SHAP (AI contribution to profit) |
+|---|---|---|
+| Below 30.6% | 234 / 553 | **−€52.5 per task** |
+| Above 30.6% | 319 / 553 | **+€51.1 per task** |
+
+The gap between being below and above threshold is ~€103/task — entirely attributable to the change in sign of AI's contribution, not to any change in the underlying task mix.
+
+**Decision View — Six-Variable Risk Table:**
+
+| Variable | Loss rate (low value) | Loss rate (high value) | Gap | Share with high value |
+|---|---|---|---|---|
+| `pricing_model_hourly` | 16% | **34%** | +18pp | 46% |
+| `seniority` (senior) | 21% | **33%** | +12pp | 22% |
+| `hours_spent` (long, top 25%) | 21% | **31%** | +9pp | 25% |
+| `client_tier` (high) | 27% | **16%** | −10pp | 26% |
+| `task_complexity_score` (high, top 25%) | 26% | **18%** | −8pp | 30% |
+| `ai_usage_pct` ≥ 30% | 28% | **21%** | −8pp | 58% |
+
+The first three are risk factors (loss rate rises with the variable); the last three are protective factors (loss rate falls with the variable). Against the test-set base loss rate of ~24%, they compound: a task combining hourly + senior + long hours runs at a substantially higher loss rate, while a task combining high client tier + high complexity + AI above threshold runs materially below it.
+
+
+## [Section 5] Conclusions
 
 
 ### What Business Data Is Missing?
@@ -460,10 +586,6 @@ The dataset captures operational and financial outcomes well. However, several v
 
 ---
 
-This final report synthesizes the financial, operational, and qualitative signals identified throughout the analysis. It highlights the "Profitability Paradox" and the "Safety Net Failure" that occur at the extremes of automation.
-
-
----
 # Strategic Business Recommendations
 
 > The recommendations below are ordered by financial leverage and structured to act on what the data actually proves, not what is intuitively appealing. Each carries a quantified target drawn from EDA findings and validated by OLS regression, SHAP decomposition, and the classification model.
@@ -484,14 +606,14 @@ The interaction model makes this more damning. When AI usage is added as a moder
 
 The EDA quantifies the visible damage:
 
-- **€1,200 per-task gap** between hourly and value-based contracts at high AI usage
-- **34% loss rate** on hourly tasks vs. 16% on fixed and value-based
+- **~€870 per-task gap** between hourly (€202) and value-based (€1,073) contracts at high AI usage
+- **34% loss rate** on hourly tasks vs. 16% on fixed and value-based (SHAP decision view)
 - Hourly pricing is the **single largest SHAP driver** of loss probability in the classifier
-- Hourly contracts represent **46% of all tasks** — the highest-risk structure is also the most prevalent
+- Hourly contracts represent **48% of all tasks** — the highest-risk structure is also the most prevalent
 
-**Action:** Migrate the AI-eligible portfolio off hourly contracts as the immediate priority. Senior-led engagements come first: the hourly model produces a mean profit of −€77 per task for seniors versus €511 on value-based — a swing of nearly **€600 per task** on the most expensive talent in the business. Reposition the standard commercial offer around fixed-fee deliverables and value-based outcomes. The pitch becomes *"guaranteed delivery, absorbed scope changes"* — a story the data supports directly, since high-AI tasks with scope changes outperform those without in terms of both profit and SLA compliance.
+**Action:** Migrate the AI-eligible portfolio off hourly contracts as the immediate priority. Senior-led engagements come first: the hourly model produces a mean profit of −€78 per task for seniors versus €511 on value-based — a swing of nearly **€590 per task** on the most expensive talent in the business. Reposition the standard commercial offer around fixed-fee deliverables and value-based outcomes. The pitch becomes *"guaranteed delivery, absorbed scope changes"* — a story the data supports directly, since high-AI tasks with scope changes outperform those without in terms of both profit and SLA compliance.
 
-**Target outcome:** Recover the €540 OLS-estimated structural gap on every task migrated off hourly contracts. Eliminate the −€701 AI interaction penalty entirely by removing the contract structure that triggers it. Convert junior-plus-value-based work into an explicitly marketed delivery tier: at **€923 mean profit per task**, it is the single most profitable segment in the entire seniority-pricing matrix and currently has no commercial product built around it.
+**Target outcome:** Recover the €540 OLS-estimated structural gap on every task migrated off hourly contracts. Eliminate the −€701 AI interaction penalty entirely by removing the contract structure that triggers it. Convert junior-plus-value-based work into an explicitly marketed delivery tier: at **€919 mean profit per task**, it is the single most profitable segment in the entire seniority-pricing matrix and currently has no commercial product built around it.
 
 ---
 
@@ -526,16 +648,16 @@ AI is not uniformly profitable across deliverables:
 
 | Task Type | Profit at Low AI | Profit at High AI | Multiplier | Direction |
 |---|---|---|---|---|
-| **Release** | €138 | €816 | 5.9× | Push to 70–80% |
-| **Dev** | — | — | 2×+ | Push to 70–80% |
-| **Report** | — | — | 2×+ | Push to 70–80% |
-| **Article** | — | Peaks at medium, then declines | — | Cap at 25–50% |
+| **Release** | €146 | €701 | 4.8× | Push to 70–80% |
+| **Dev** | €297 | €587 | 2.0× | Push to 70–80% |
+| **Report** | €311 | €559 | 1.8× | Push to 70–80% |
+| **Article** | €318 | €368 | Peaks at medium (€490), then declines | Cap at 25–50% |
 
 The OLS confirms this structure — task type dummies for report (+€205), dev (+€191), and article (+€153) are all significant relative to the ad baseline, but the direction of AI's interaction with task type differs by category. Articles invert because rework outpaces speed gains in creative, judgment-heavy work.
 
 **Action:** Aggressively push Release, Dev, and Report toward 70–80% AI usage with refined templates, automated QA, and task-specific prompt libraries. Cap Article and Ad workflows at the medium band (25–50%) and reposition the Content team's AI usage as a drafting tool rather than a production tool.
 
-**Target outcome:** Capture the **+€678 per-task dividend** in Release tasks specifically, and avoid the negative dividend in long-form content.
+**Target outcome:** Capture the **+€555 per-task dividend** in Release tasks specifically, and avoid the negative dividend in long-form content.
 
 ---
 
@@ -563,7 +685,7 @@ The mechanism: premium clients and hard tasks are more likely to be on better co
 
 ### 5. Reposition Seniors as AI Force Multipliers, Not Manual Operators
 
-Senior contributors are the **worst-performing segment at low AI usage** (51% loss rate) and the **best-performing at high AI usage** (€3,935 mean profit per task). The modelling explains both extremes:
+Senior contributors are the **worst-performing segment at low AI usage** (50% loss rate) and the **best-performing at high AI usage** (€3,935 mean profit per task). The modelling explains both extremes:
 
 - OLS baseline: each seniority level costs **−€173 in profit** all else equal (seniors are expensive, margin compresses by default)
 - Interaction model: each seniority level raises the marginal return of AI by **+€359** (p = 0.002)
@@ -577,7 +699,7 @@ The SHAP waterfall for the worst predicted losses consistently shows the opposit
 
 If either fails, reassign or renegotiate before kickoff. Reallocate seniors toward 80–100% AI workflows on complex deliverables, AI workflow design, and prompt engineering for the wider team.
 
-**Target outcome:** Shift the senior loss rate from **51% toward the mid-level baseline (21%)** while capturing the **€3,935 profit ceiling** on high-leverage engagements. This is the largest single talent-utilisation opportunity in the dataset.
+**Target outcome:** Shift the senior loss rate from **50% toward the mid-level baseline (~25%)** while capturing the **€3,935 profit ceiling** on high-leverage engagements. This is the largest single talent-utilisation opportunity in the dataset.
 
 ---
 
@@ -609,8 +731,8 @@ The three **risk factors** (hourly pricing, senior staffing, long hours) compoun
 ### 7. Fix Briefs Before Fixing Anything Else
 
 Brief quality correlates:
-- **+0.34** with outcome score
-- **−0.36** with rework hours
+- **+0.35** with outcome score
+- **−0.25** with rework hours
 
 These are the **strongest controllable predictors in the dataset** — larger than AI usage's own coefficients. High-quality briefs (Q3 to Q4) hold outcome scores at 71–74 regardless of AI band, effectively setting a performance floor that AI usage cannot shift.
 
