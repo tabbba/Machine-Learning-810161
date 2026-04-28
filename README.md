@@ -415,7 +415,7 @@ The relationship is also distinctly non-linear. Below 50% AI usage, profit gains
 
 ### Efficiency and the Rework Tax
 
-The aggregate efficiency math is favorable but tightly bounded. AI saves **~2.0 hours per task** while introducing a **~0.9 hour rework tax**, yielding a **net efficiency gain of 1.1 hours per task**. Across 3,186 tasks, that is roughly **3,500 reclaimed hours**, material capacity, but only if it is captured commercially rather than absorbed back into the workflow.
+The aggregate efficiency math is favorable but tightly bounded. AI saves **~2.0 hours per task** while introducing a **~0.9 hour rework tax**, yielding a **net efficiency gain of 1.1 hours per task**. Across 3,248 tasks, that is roughly **3,500 reclaimed hours**, material capacity, but only if it is captured commercially rather than absorbed back into the workflow.
 
 The friction profile inverts at 60%. Below this threshold, rework is negligible. Above it, rework hours rise faster than execution hours fall, and errors, revisions, and rework move in lockstep, a clear operational cascade. The interpretation is uncomfortable: at high AI usage, contributors stop scrutinizing AI output and start pushing it through. The system is trading process cleanliness for financial safety, and the trade is profitable, but it requires explicit acknowledgment because the failure mode is silent.
 
