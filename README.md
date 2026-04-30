@@ -253,7 +253,7 @@ A rising rework ratio directly correlates with a sharp decline in financial risk
 
 A single dashboard normalises five metrics to zero at the manual baseline (0–10% AI): mean profit, mean hours, mean outcome score, rework ratio, and loss rate with sign-adjustment so upward movement always represents improvement.
 
-The transition from operational degradation to exponential business improvement occurs only after crossing the **50% usage threshold**. Beyond this point, profit and loss-rate improvement soar to gains of over **150%** relative to baseline while quality score remains stable. The Rework Ratio trends deeply into the degradation zone, but the dashboard demonstrates that this rework tax is a minor trade-off for the radical expansion of margins.
+The transition from operational degradation to business improvement occurs only after crossing the **50% usage threshold**. Beyond this point, profit improves sharply, reaching about **+139%** versus the 0–10% baseline in the 80–90% band, while quality score remains stable. The Rework Ratio trends deeply into the degradation zone, but the dashboard demonstrates that this rework tax is a minor trade-off for the expansion of margins.
 
 ---
 
