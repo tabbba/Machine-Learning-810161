@@ -273,7 +273,7 @@ While seniors face the highest financial risk at low AI usage (**51% loss rate**
 
 ![Task type low vs high AI profit comparison](images/21_task_type_sensitivity.png)
 
-**Release** tasks see the most dramatic transformation: mean profit from **€149** to **€842** (nearly 5.7×). **Dev** tasks more than double, while **Report** rises by about 59%. **Article** is the only category where high AI usage *reduces* profit, due to the heavy rework tax required to bring automated creative writing up to standard.
+**Release** tasks see the most dramatic transformation: mean profit from **€138** to **€816** (nearly 6×). **Dev** tasks more than double, while **Report** rises by about 62%. **Article** is the only category where high AI usage *reduces* profit, due to the heavy rework tax required to bring automated creative writing up to standard.
 
 ---
 
