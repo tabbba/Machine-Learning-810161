@@ -408,7 +408,7 @@ The six variables with the largest impact on loss probability form a practical p
 | Hours spent (long, top 25%) | 21% | **31%** | +9pp | 25% |
 | Client tier (high) | 27% | **16%** | −10pp | 26% |
 | Task complexity (high, top 25%) | 26% | **18%** | −8pp | 30% |
-| AI usage ≥ 30% | 28% | **21%** | −8pp | 58% |
+| AI usage ≥ 30.6% | 28% | **21%** | −8pp | 58% |
 
 The first three are risk factors (loss rate rises with the variable); the last three are protective (loss rate falls). They compound: a task combining hourly + senior + long hours runs substantially above the 24% baseline, while a task combining high client tier + high complexity + AI above threshold runs materially below it.
 
@@ -443,7 +443,7 @@ Seniority interacts asymmetrically with this dynamic. **Senior contributors at l
 
 ![Loss-driver decision map](images/loss_driver_decision_map.png)
 
-The decision map visualises both the magnitude and the exposure of each lever simultaneously. Left panel: empirical loss rate on the test set for the safe vs. risky level of each variable, against the 24% base rate. Right panel: the share of tasks currently sitting at the high-risk level. Pricing is the most damaging and the most prevalent risk factor: 46% of all tasks are on hourly contracts. AI usage above 30% is the most widely available protective factor, already present in 58% of tasks.
+The decision map visualises both the magnitude and the exposure of each lever simultaneously. Left panel: empirical loss rate on the test set for the safe vs. risky level of each variable, against the 24% base rate. Right panel: the share of tasks currently sitting at the high-risk level. Pricing is the most damaging and the most prevalent risk factor: 46% of all tasks are on hourly contracts. AI usage at or above 30.6% is the most widely available protective factor, already present in 58% of tasks.
 
 </details>
 
